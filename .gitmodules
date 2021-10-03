@@ -1,0 +1,4 @@
+[submodule "third_party/bbts"]
+	path = third_party/bbts
+	url = https://github.com/dimitrijejankov/bbts.git
+	branch = two-phase-cc
