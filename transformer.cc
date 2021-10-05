@@ -54,20 +54,20 @@ at::Tensor multihead_attention(const std::int64_t batch_size,
   return at::matmul(x, multihead_out_w.transpose(0, 1)) + multihead_out_b;
 }
 
-at::Tensor pointwise_ffnn(at::Tensor &w1_w, at::Tensor &w1_b, at::Tensor &w2_w,
-                          at::Tensor &w2_b, at::Tensor &x) {
+void pointwise_ffnn(at::Tensor &w1_w, at::Tensor &w1_b, at::Tensor &w2_w,
+                    at::Tensor &w2_b, at::Tensor &x, at::Tensor &out) {
   x = at::gelu(at::matmul(x, w1_w.transpose(0, 1)) + w1_b);
-  return at::matmul(x, w2_w.transpose(0, 1)) + w2_b;
+  at::matmul_out(out, x, w2_w.transpose(0, 1)) + w2_b;
 }
 
-at::Tensor transformer(const std::int64_t batch_size,
-                       const std::int64_t seq_len, const std::int64_t num_heads,
-                       const std::int64_t hidden_layer_size, at::Tensor &w1_w,
-                       at::Tensor &w1_b, at::Tensor &w2_w, at::Tensor &w2_b,
-                       at::Tensor &q_w, at::Tensor &q_b, at::Tensor &k_w,
-                       at::Tensor &k_b, at::Tensor &v_w, at::Tensor &v_b,
-                       at::Tensor &multihead_out_w, at::Tensor &multihead_out_b,
-                       at::Tensor &x, at::Tensor *mask) {
+void transformer(const std::int64_t batch_size, const std::int64_t seq_len,
+                 const std::int64_t num_heads,
+                 const std::int64_t hidden_layer_size, at::Tensor &w1_w,
+                 at::Tensor &w1_b, at::Tensor &w2_w, at::Tensor &w2_b,
+                 at::Tensor &q_w, at::Tensor &q_b, at::Tensor &k_w,
+                 at::Tensor &k_b, at::Tensor &v_w, at::Tensor &v_b,
+                 at::Tensor &multihead_out_w, at::Tensor &multihead_out_b,
+                 at::Tensor &x, at::Tensor *mask, at::Tensor &out) {
 
   // apply the layer norm
   x = layer_norm(x);
@@ -81,14 +81,14 @@ at::Tensor transformer(const std::int64_t batch_size,
   x = layer_norm(x);
 
   // the final output of the transformer
-  return pointwise_ffnn(w1_w, w1_b, w2_w, w2_b, x);
+  pointwise_ffnn(w1_w, w1_b, w2_w, w2_b, x, out);
 }
 
 void kernel(const std::int64_t batch_size, const std::int64_t seq_len,
             const std::int64_t num_heads, const std::int64_t hidden_layer_size,
             bert_dense_t &_x, bert_dense_t &_mask, bert_dense_t &_q,
-            bert_dense_t &_k, bert_dense_t &_v, bert_dense_t &_out,
-            bert_dense_t &_w1, bert_dense_t &_w2) {
+            bert_dense_t &_k, bert_dense_t &_v, bert_dense_t &_multihead_out,
+            bert_dense_t &_w1, bert_dense_t &_w2, bert_dense_t &_out) {
 
   at::Tensor x =
       at::from_blob(_x.data(), {batch_size, seq_len, hidden_layer_size});
@@ -107,10 +107,10 @@ void kernel(const std::int64_t batch_size, const std::int64_t seq_len,
       at::from_blob(_v.data(), {hidden_layer_size, hidden_layer_size});
   at::Tensor v_b = at::from_blob(_v.bias(), {1, hidden_layer_size});
 
-  at::Tensor multihead_out_w =
-      at::from_blob(_out.data(), {hidden_layer_size, hidden_layer_size});
+  at::Tensor multihead_out_w = at::from_blob(
+      _multihead_out.data(), {hidden_layer_size, hidden_layer_size});
   at::Tensor multihead_out_b =
-      at::from_blob(_out.bias(), {1, hidden_layer_size});
+      at::from_blob(_multihead_out.bias(), {1, hidden_layer_size});
 
   at::Tensor w1_w =
       at::from_blob(_w1.data(), {4 * hidden_layer_size, hidden_layer_size});
@@ -120,9 +120,12 @@ void kernel(const std::int64_t batch_size, const std::int64_t seq_len,
       at::from_blob(_w2.data(), {hidden_layer_size, 4 * hidden_layer_size});
   at::Tensor w2_b = at::from_blob(_w2.bias(), {1, hidden_layer_size});
 
+  at::Tensor out =
+      at::from_blob(_out.data(), {batch_size, seq_len, hidden_layer_size});
+
   transformer(batch_size, seq_len, num_heads, hidden_layer_size, w1_w, w1_b,
               w2_w, w2_b, q_w, q_b, k_w, k_b, v_w, v_b, multihead_out_w,
-              multihead_out_b, x, &mask);
+              multihead_out_b, x, &mask, out);
 }
 
 bert::transformer::transformer() {
@@ -154,7 +157,7 @@ size_t bert::transformer::get_complexity_hint(
     const bbts::ud_impl_t::meta_args_t &_in) {
 
   // make sure that there are enough parameters
-  if (params.num_parameters() < 2) {
+  if (params.num_parameters() < 4) {
     throw std::runtime_error("Not enough parameters");
   }
 
@@ -167,21 +170,29 @@ void bert::transformer::get_out_meta(
     const bbts::ud_impl_t::meta_args_t &_in,
     bbts::ud_impl_t::meta_args_t &_out) const {
 
+  const std::uint32_t batch_size = params.get_int<0>();
+  const std::uint32_t seq_len = params.get_int<1>();
+  const std::uint32_t num_heads = params.get_int<2>();
+  const std::uint32_t hidden_layer_size = params.get_int<3>();
+
   // get the output argeters
   auto &m_out = _out.get<0>().as<bert_dense_meta_t>().m();
 
   // set the new values
-  m_out = {params.get_uint<0>(), params.get_uint<1>(), false};
+  m_out = {.num_dim = 3,
+           .dim0 = batch_size,
+           .dim1 = seq_len,
+           .dim2 = hidden_layer_size};
 }
 
 void bert::transformer::exec(const bbts::ud_impl_t::tensor_params_t &params,
                              const bbts::ud_impl_t::tensor_args_t &_in,
                              bbts::ud_impl_t::tensor_args_t &_out) {
 
-  const std::int64_t batch_size = (int64_t)params.get_int<0>();
-  const std::int64_t seq_len = (int64_t)params.get_int<1>();
-  const std::int64_t num_heads = (int64_t)params.get_int<2>();
-  const std::int64_t hidden_layer_size = (int64_t)params.get_int<3>();
+  const std::uint32_t batch_size = params.get_int<0>();
+  const std::uint32_t seq_len = params.get_int<1>();
+  const std::uint32_t num_heads = params.get_int<2>();
+  const std::uint32_t hidden_layer_size = params.get_int<3>();
 
   // get the output tensor
   auto &out = _out.get<0>().as<bert_dense_t>();
@@ -197,7 +208,7 @@ void bert::transformer::exec(const bbts::ud_impl_t::tensor_params_t &params,
   auto &w2 = _in.get<0>().as<bert_dense_t>();
 
   kernel(batch_size, seq_len, num_heads, hidden_layer_size, x, mask, q, k, v,
-         multihead_out, w1, w2);
+         multihead_out, w1, w2, out);
 }
 
 } // namespace bert
