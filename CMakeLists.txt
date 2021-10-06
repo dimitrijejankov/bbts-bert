@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.12)
 
 project(pdb)
 
+# set the c++ and cuda version
+set(CMAKE_CXX_STANDARD 20)
+
 # for aten
 set(CMAKE_PREFIX_PATH third_party/libtorch)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
@@ -14,7 +17,7 @@ find_package(Torch REQUIRED)
 target_link_libraries(bert "${TORCH_LIBRARIES}")
 set_property(TARGET bert PROPERTY CXX_STANDARD 14)
 
-add_executable(test_transformer test_transformer.cc )
+add_executable(test_transformer test_transformer.cc)
 target_link_libraries(test_transformer bert)
 
 add_executable(generate_commands generate_commands.cc)

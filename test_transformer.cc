@@ -56,7 +56,7 @@ int main() {
       bbts::command_param_t{.i = hidden_layer_size},
   };
   auto params =
-      bbts::command_param_list_t{._data = _params.data(), ._num_elements = 0};
+      bbts::command_param_list_t{._data = _params.data(), ._num_elements = 4};
   bbts::ud_impl_t::tensor_args_t input_args = {
       {&x, &mask, &q, &k, &v, &multihead_out, &w1, &w2}};
   bbts::ud_impl_t::tensor_args_t output_args = {{&out}};

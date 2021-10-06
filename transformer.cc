@@ -199,13 +199,13 @@ void bert::transformer::exec(const bbts::ud_impl_t::tensor_params_t &params,
 
   // get the input tensors
   auto &x = _in.get<0>().as<bert_dense_t>();
-  auto &mask = _in.get<0>().as<bert_dense_t>();
-  auto &q = _in.get<0>().as<bert_dense_t>();
-  auto &k = _in.get<0>().as<bert_dense_t>();
-  auto &v = _in.get<0>().as<bert_dense_t>();
-  auto &multihead_out = _in.get<0>().as<bert_dense_t>();
-  auto &w1 = _in.get<0>().as<bert_dense_t>();
-  auto &w2 = _in.get<0>().as<bert_dense_t>();
+  auto &mask = _in.get<1>().as<bert_dense_t>();
+  auto &q = _in.get<2>().as<bert_dense_t>();
+  auto &k = _in.get<3>().as<bert_dense_t>();
+  auto &v = _in.get<4>().as<bert_dense_t>();
+  auto &multihead_out = _in.get<5>().as<bert_dense_t>();
+  auto &w1 = _in.get<6>().as<bert_dense_t>();
+  auto &w2 = _in.get<7>().as<bert_dense_t>();
 
   kernel(batch_size, seq_len, num_heads, hidden_layer_size, x, mask, q, k, v,
          multihead_out, w1, w2, out);
