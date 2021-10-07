@@ -174,9 +174,9 @@ int main() {
 
   // specify functions
   funs.push_back(abstract_ud_spec_t{.id = GENERATE_TENSOR_ID,
-                                    .ud_name = "uniform",
+                                    .ud_name = "generate_tensor",
                                     .input_types = {},
-                                    .output_types = {"dense"}});
+                                    .output_types = {"bert_dense"}});
 
   funs.push_back(abstract_ud_spec_t{
       .id = TRANSFORMER_ID,

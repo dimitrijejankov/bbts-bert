@@ -34,14 +34,15 @@ generate_tensor::generate_tensor() {
 size_t generate_tensor::get_complexity_hint(
     const bbts::ud_impl_t::tensor_params_t &params,
     const bbts::ud_impl_t::meta_args_t &_in) {
+      
+  // get the output argeters
+  const bool has_bias = (uint32_t)params.get_bool_or_default<0>(false);
+  const std::uint32_t dim0 = (uint32_t)params.get_uint_or_default<2>(1);
+  const std::uint32_t dim1 = (uint32_t)params.get_uint_or_default<3>(1);
+  const std::uint32_t dim2 = (uint32_t)params.get_uint_or_default<4>(1);
 
-  // make sure that there are enough parameters
-  if (params.num_parameters() < 2) {
-    throw std::runtime_error("Not enough parameters");
-  }
-
-  // O(n * m)
-  return params.get_uint<0>() * params.get_uint<1>();
+  // O(dim0 * dim1 * dim2)
+  return dim0 * dim1 * dim2 + (has_bias ? dim0 : 0);
 }
 
 void generate_tensor::get_out_meta(

@@ -1,3 +1,9 @@
 .cache
 build
 third_party/libtorch
+generate_commands
+genrate_tensors.sbbts
+libbert.so
+run.sbbts
+test_transformer
+generate_tensors.sbbts
