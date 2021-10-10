@@ -165,9 +165,9 @@ int main() {
 
   const std::uint32_t batch_size = 1;
   const std::uint32_t seq_len = 20;
-  const std::uint32_t num_heads = 8;
-  const std::uint32_t hidden_layer_size = 256;
-  const std::uint32_t num_transformers = 4;
+  const std::uint32_t num_heads = 12;
+  const std::uint32_t hidden_layer_size = 768;
+  const std::uint32_t num_transformers = 12;
 
   // the functions
   std::vector<abstract_ud_spec_t> funs;

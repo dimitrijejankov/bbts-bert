@@ -36,6 +36,7 @@ bbts::tensor_creation_fs_t bert_dense_t::get_creation_fs() {
 
     // print the tensor
     auto idx = 0u;
+    ss << "(" << dim0 << ", " << dim1 << ", " << dim2 << ")\n";
     for (int i = 0; i < dim0; i++) {
       ss << "[";
       for (int j = 0; j < dim1; j++) {

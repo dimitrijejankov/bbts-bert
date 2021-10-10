@@ -209,6 +209,11 @@ void bert::transformer::exec(const bbts::ud_impl_t::tensor_params_t &params,
 
   kernel(batch_size, seq_len, num_heads, hidden_layer_size, x, mask, q, k, v,
          multihead_out, w1, w2, out);
+
+  out.meta().m() = {.num_dim = 3,
+                    .dim0 = batch_size,
+                    .dim1 = seq_len,
+                    .dim2 = hidden_layer_size};
 }
 
 } // namespace bert
