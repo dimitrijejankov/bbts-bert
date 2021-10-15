@@ -44,3 +44,8 @@ target_link_libraries(test_transformer "${TORCH_LIBRARIES}")
 set_property(TARGET test_transformer PROPERTY CXX_STANDARD 14)
 
 add_executable(generate_commands generate_commands.cc)
+
+add_executable(run_model run_model.cc)
+
+target_link_libraries(run_model "${TORCH_LIBRARIES}")
+set_property(TARGET run_model PROPERTY CXX_STANDARD 14)

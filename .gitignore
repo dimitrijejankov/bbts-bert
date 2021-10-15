@@ -6,4 +6,6 @@ genrate_tensors.sbbts
 libbert.so
 run.sbbts
 test_transformer
+run_model
+bert-12-heads-768-hidden.pt
 generate_tensors.sbbts
